@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -38,7 +39,7 @@ public class MainActivity extends ActionBarActivity {
     protected EditText username;
     private EditText password;
     protected String enteredUsername;
-    private final String serverUrl = "Path to your server";
+    private final String serverUrl = "http://192.168.35.67/api/v1/users/login";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,13 +110,15 @@ public class MainActivity extends ActionBarActivity {
 
             HttpClient httpClient = new DefaultHttpClient(httpParameters);
             HttpPost httpPost = new HttpPost(params[0]);
+            httpPost.addHeader("Accept","application/json");
 
             String jsonResult = "";
             try {
                 List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-                nameValuePairs.add(new BasicNameValuePair("username", params[1]));
+                nameValuePairs.add(new BasicNameValuePair("user_cd", params[1]));
                 nameValuePairs.add(new BasicNameValuePair("password", params[2]));
                 httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+                httpPost.addHeader("Accept","application/json");
 
                 HttpResponse response = httpClient.execute(httpPost);
                 jsonResult = inputStreamToString(response.getEntity().getContent()).toString();
@@ -139,16 +142,37 @@ public class MainActivity extends ActionBarActivity {
                 Toast.makeText(MainActivity.this, "Server connection failed", Toast.LENGTH_LONG).show();
                 return;
             }
-            int jsonResult = returnParsedJsonObject(result);
-            if(jsonResult == 0){
-                Toast.makeText(MainActivity.this, "Invalid username or password", Toast.LENGTH_LONG).show();
-                return;
-            }
-            if(jsonResult == 1){
-                Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-                intent.putExtra("USERNAME", enteredUsername);
-                intent.putExtra("MESSAGE", "You have been successfully login");
-                startActivity(intent);
+            Log.d("TAG", "onPostExecute: "+result);
+
+
+
+            try {
+
+                JSONObject resultObject = null;
+                JSONObject resultData = null;
+                boolean loginSuccessResult = false;
+                String fullName = null;
+
+                resultObject = new JSONObject(result);
+                loginSuccessResult = resultObject.getBoolean("success");
+
+                if(loginSuccessResult == false){
+                    Toast.makeText(MainActivity.this, "Invalid username or password", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if(loginSuccessResult == true){
+                    resultData = resultObject.getJSONObject("data");
+                    Log.d("USERINFO", "FULLNAME: "+ resultData.getString("full_name"));
+                    // log session || store
+                    // Hien thi man hinh main va get danh sach buoi hoc trong ngay
+                    //Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                    //intent.putExtra("FULLNAME", resultObject.getString("full_name"));
+                    //intent.putExtra("MESSAGE", "You have been successfully login");
+                    //startActivity(intent);
+                }
+
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
         }
         private StringBuilder inputStreamToString(InputStream is) {
